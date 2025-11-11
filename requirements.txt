@@ -1,0 +1,7 @@
+Flask==2.3.3
+numpy==1.26.5
+opencv-python==4.8.1.78
+pandas==2.1.1
+easyocr==1.6.2
+ultralytics==8.0.134
+openpyxl==3.1.2

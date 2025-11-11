@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>OCR Multi-Image</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(to right, #e0f2ff, #f0f2f5); text-align: center; padding: 60px; }
+        h1 { color: #333; margin-bottom: 30px; }
+        .container, #results { background: #fff; padding: 40px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); display: inline-block; }
+        input[type="file"] { margin: 15px 0; padding: 10px; border: 2px dashed #007bff; border-radius: 10px; cursor: pointer; }
+        button { background-color: #007bff; color: white; border: none; padding: 12px 25px; border-radius: 8px; cursor: pointer; font-size: 16px; transition: all 0.2s ease; }
+        button:hover { background-color: #0056b3; transform: scale(1.05); }
+        .error { color: red; margin-top: 15px; }
+        #results { margin-top: 30px; text-align: left; width: 90%; max-width: 900px; display: none; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ddd; padding: 8px; }
+        th { background-color: #007bff; color: white; }
+        #choose-again { margin-top: 20px; }
+        /* Spinner Styles */
+        #spinner {
+            display: none;
+            margin: 20px auto;
+            border: 8px solid #f3f3f3;
+            border-top: 8px solid #007bff;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <h1>OCR Multi-Image Upload</h1>
+
+    <div class="container" id="upload-container">
+        <form id="ocrForm" enctype="multipart/form-data">
+            <input type="file" name="images" multiple required>
+            <br>
+            <button type="submit">Upload & Extract</button>
+        </form>
+        <p class="error" id="error-msg"></p>
+    </div>
+
+    <div id="spinner"></div>
+
+    <div id="results">
+        <h2>Extracted Text:</h2>
+        <table id="results-table">
+            <tr>
+                <th>First Name</th>
+                <th>Family Name</th>
+                <th>Address</th>
+                <th>ID</th>
+                <th>DOB</th>
+            </tr>
+        </table>
+        <br>
+        <a id="download-link" href="#"><button>Download as Excel</button></a>
+        <br>
+        <button id="choose-again">Choose Another Files</button>
+    </div>
+
+    <script>
+        const form = document.getElementById('ocrForm');
+        const uploadContainer = document.getElementById('upload-container');
+        const resultsDiv = document.getElementById('results');
+        const resultsTable = document.getElementById('results-table');
+        const errorMsg = document.getElementById('error-msg');
+        const downloadLink = document.getElementById('download-link');
+        const chooseAgainBtn = document.getElementById('choose-again');
+        const spinner = document.getElementById('spinner');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            errorMsg.textContent = "";
+            const files = form.images.files;
+            if (!files.length) return;
+
+            spinner.style.display = 'block';
+
+            const formData = new FormData();
+            for (const file of files) formData.append('images', file);
+
+            try {
+                const response = await fetch('/', { method: 'POST', body: formData });
+                const data = await response.json();
+
+                if (data.error) {
+                    errorMsg.textContent = data.error;
+                    spinner.style.display = 'none';
+                    return;
+                }
+
+                resultsTable.innerHTML = `
+                    <tr>
+                        <th>First Name</th>
+                        <th>Family Name</th>
+                        <th>Address</th>
+                        <th>ID</th>
+                        <th>DOB</th>
+                    </tr>
+                `;
+
+                data.results.forEach(row => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${row.first_name}</td>
+                        <td>${row.family_name}</td>
+                        <td>${row.address}</td>
+                        <td>${row.ID}</td>
+                        <td>${row.DOB}</td>
+                    `;
+                    resultsTable.appendChild(tr);
+                });
+
+                downloadLink.href = data.excel_path;
+
+                spinner.style.display = 'none';
+                uploadContainer.style.display = 'none';
+                resultsDiv.style.display = 'block';
+            } catch (err) {
+                console.error(err);
+                errorMsg.textContent = "Something went wrong. Please try again.";
+                spinner.style.display = 'none';
+            }
+        });
+
+        chooseAgainBtn.addEventListener('click', () => {
+            resultsDiv.style.display = 'none';
+            uploadContainer.style.display = 'block';
+            form.reset();
+        });
+    </script>
+</body>
+</html>
